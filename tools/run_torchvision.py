@@ -74,11 +74,11 @@ if __name__ == "__main__":
 
     models = ["dinov2_vits14", "alexnet", "googlenet", "resnet18", "vgg11"]
 
-    device = torch_ttnn.ttnn.open(0) if args.backend == "torch_ttnn" else None
+    device = torch_ttnn.ttnn.open_device(device_id = 0) if args.backend == "torch_ttnn" else None
     for m in models:
         try:
             run_model(m, args.backend, args.backward, args.out_path, args.graphviz, args.profile, device)
         except:
             print(f"{m} FAIL")
     if args.backend == "torch_ttnn":
-        torch_ttnn.ttnn.close(device)
+        torch_ttnn.ttnn.close_device(device)

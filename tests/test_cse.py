@@ -19,11 +19,11 @@ class AddModule(torch.nn.Module):
 class TestModules(unittest.TestCase):
     def setUp(self):
         # Open device 0
-        self.device: ttnn.Device = ttnn.open(0)
+        self.device: ttnn.Device = ttnn.open_device(device_id = 0)
 
     def tearDown(self):
         # Close the device
-        ttnn.close(self.device)
+        ttnn.close_device(self.device)
 
     def test_add(self):
         m = AddModule()
@@ -38,13 +38,15 @@ class TestModules(unittest.TestCase):
         option._out_fx_graphs[0].print_tabular()
         # Check the graph has be rewritten and contain ttnn ops
         nodes = list(option._out_fx_graphs[0].nodes)
-        self.assertEqual(nodes[3].target, ttnn.add)
-        self.assertEqual(nodes[3].args[0].target, ttnn.to_device)
-        self.assertEqual(nodes[3].args[0].args[0].target, ttnn.from_torch)
-        self.assertEqual(nodes[3].args[1].target, ttnn.to_device)
-        self.assertEqual(nodes[3].args[1].args[0].target, ttnn.from_torch)
-        self.assertEqual(nodes[4].target, ttnn.from_device)
-        self.assertEqual(nodes[5].target, ttnn.to_layout)
-        self.assertEqual(nodes[6].target, ttnn.to_torch)
+        self.assertEqual(nodes[4].target, ttnn.add)
+        self.assertEqual(nodes[4].args[0].target, ttnn.to_device)
+        self.assertEqual(nodes[4].args[0].args[0].target, ttnn.to_layout)
+        self.assertEqual(nodes[4].args[0].args[0].args[0].target, ttnn.from_torch)
+        self.assertEqual(nodes[4].args[1].target, ttnn.to_device)
+        self.assertEqual(nodes[4].args[1].args[0].target, ttnn.to_layout)
+        self.assertEqual(nodes[4].args[1].args[0].args[0].target, ttnn.from_torch)
+        self.assertEqual(nodes[5].target, ttnn.from_device)
+        self.assertEqual(nodes[6].target, ttnn.to_layout)
+        self.assertEqual(nodes[7].target, ttnn.to_torch)
         # Check inference result
         self.assertTrue(torch.allclose(result_before, result_after))

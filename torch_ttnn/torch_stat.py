@@ -4,6 +4,7 @@ from typing import List
 import torch._dynamo
 import os
 from collections import Counter
+from functorch.compile import make_boxed_func
 
 torch._dynamo.config.suppress_errors = False
 torch._dynamo.config.verbose = True
@@ -56,7 +57,7 @@ def aten_backend(
     gm.recompile()
     option.out_fx_graphs.append(gm.graph)
     option.counter["val"] += 1
-    return gm
+    return make_boxed_func(gm)
 
 
 from torch._dynamo.backends.common import aot_autograd

@@ -9,11 +9,11 @@ import collections
 class TestRealWorld(unittest.TestCase):
     def setUp(self):
         # Open device 0
-        self.device: ttnn.Device = ttnn.open(0)
+        self.device: ttnn.Device = ttnn.open_device(device_id = 0)
 
     def tearDown(self):
         # Close the device
-        ttnn.close(self.device)
+        ttnn.close_device(self.device)
 
     @unittest.skip(
         "Skip this test because it take 135 MB to download the ResNet18 model. Un-skip it if you want to test it."

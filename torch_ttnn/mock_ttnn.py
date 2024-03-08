@@ -22,12 +22,12 @@ class Device:
     #      return f"Device({self.device_id})"
 
 
-def open(device_id):
+def open_device(device_id):
     print(f"Device {device_id} is opened")
     return Device(device_id)
 
 
-def close(device):
+def close_device(device):
     print(f"Device {device.device_id} is closed")
     pass
 
@@ -109,6 +109,7 @@ def permute(x, order):
 
 
 ROW_MAJOR_LAYOUT = 0
+TILE_LAYOUT = 1
 
 # Wrap the functions so that they can be used in torch.fx
 # and block the further recusive tracing. See:

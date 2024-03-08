@@ -2,6 +2,7 @@ import torch.linalg
 import torch
 from typing import List
 import torch._dynamo
+from functorch.compile import make_boxed_func
 
 torch._dynamo.config.suppress_errors = False
 torch._dynamo.config.verbose = True
@@ -30,6 +31,9 @@ def aten_backend(
     torch.fx.graph._register_custom_builtin("ttnn_Specified_Device", "", option.device)
     torch.fx.graph._register_custom_builtin(
         "ttnn_ROW_MAJOR_LAYOUT", "", ttnn.ROW_MAJOR_LAYOUT
+    )
+    torch.fx.graph._register_custom_builtin(
+        "ttnn_TILE_LAYOUT", "", ttnn.TILE_LAYOUT
     )
 
     # Rewrite with ttnn ops, will insert redundant data movement
@@ -70,7 +74,7 @@ def aten_backend(
     gm.graph.print_tabular()
     print(gm.code)
     option._out_fx_graphs.append(gm.graph)
-    return gm
+    return make_boxed_func(gm)
 
 
 from torch._dynamo.backends.common import aot_autograd

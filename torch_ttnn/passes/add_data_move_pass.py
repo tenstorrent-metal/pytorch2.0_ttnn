@@ -78,15 +78,20 @@ def insert_node_between(src_node, dst_idx, dst_node, new_nodes):
 
 def try_add_data_move_in(src_node, dst_idx, dst_node, device) -> bool:
     if not should_add_data_move_in(src_node, dst_node):
-        return False
+        return None
 
     g = dst_node.graph
+    new_nodes = list()
     with g.inserting_before(dst_node):
-        from_torch = g.call_function(ttnn.from_torch, (src_node,))
-        to_device = g.call_function(ttnn.to_device, (from_torch, device))
+        new_nodes.append(g.call_function(ttnn.from_torch, (src_node,)))
+        if dst_node.target != ttnn.reshape:
+            new_nodes.append(g.call_function(
+                ttnn.to_layout, (new_nodes[-1], DummyTtnnTileLayout())
+            ))
+        new_nodes.append(g.call_function(ttnn.to_device, (new_nodes[-1], device)))
 
-    insert_node_between(src_node, dst_idx, dst_node, [from_torch, to_device])
-    return True
+    insert_node_between(src_node, dst_idx, dst_node, new_nodes)
+    return new_nodes[-1]
 
 
 def try_add_data_move_out(src_node, dst_idx, dst_node) -> bool:
@@ -101,7 +106,7 @@ def try_add_data_move_out(src_node, dst_idx, dst_node) -> bool:
         )
         to_torch = g.call_function(ttnn.to_torch, (row_major_layout,))
 
-    insert_node_between(src_node, dst_idx, dst_node, [from_device, to_torch])
+    insert_node_between(src_node, dst_idx, dst_node, [from_device, row_major_layout, to_torch])
     return True
 
 
@@ -110,11 +115,13 @@ class DummyDevice:
     def __repr__(self):
         return f"ttnn_Specified_Device"
 
-
 class DummyTtnnRowMajorLayout:
     def __repr__(self):
         return f"ttnn_ROW_MAJOR_LAYOUT"
 
+class DummyTtnnTileLayout:
+    def __repr__(self):
+        return f"ttnn_TILE_LAYOUT"
 
 class AddDataMovePass(PassBase):
     def call(self, gm: torch.fx.GraphModule):
@@ -123,9 +130,14 @@ class AddDataMovePass(PassBase):
         i = 0
         nodes = list(gm.graph.nodes)
         for node in nodes:
+            # Track argument reuse
+            data_move_in_hash = {}
             args = node.args[0] if node.op == "output" else node.args
             for idx, arg in enumerate(args):
-                if try_add_data_move_in(arg, idx, node, device):
+                if arg in data_move_in_hash:
+                    node.update_arg(idx, data_move_in_hash[arg])
+                elif to_device := try_add_data_move_in(arg, idx, node, device):
+                    data_move_in_hash[arg] = to_device
                     i += 1
                 if try_add_data_move_out(arg, idx, node):
                     i += 1
