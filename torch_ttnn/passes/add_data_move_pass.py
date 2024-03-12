@@ -49,6 +49,12 @@ def is_tt(node):
     return is_tt_compute(node) or is_tt_data_move(node)
 
 
+def is_reshape_rank_4(node):
+    if node.target == ttnn.reshape:
+        return len(node.args[1]) == 4
+    else:
+        return False
+
 def should_add_data_move_in(src_node, dst_node) -> bool:
     if isinstance(src_node, (int, float, list, tuple)):
         return False
@@ -88,7 +94,9 @@ def try_add_data_move_in(src_node, dst_idx, dst_node, device) -> bool:
             new_nodes.append(g.call_function(
                 ttnn.to_layout, (new_nodes[-1], DummyTtnnTileLayout())
             ))
-        new_nodes.append(g.call_function(ttnn.to_device, (new_nodes[-1], device)))
+        # For reshape only put tensor on device if rank is 4
+        if (is_tt_compute(dst_node) and dst_node.target != ttnn.reshape) or (dst_node.target == ttnn.reshape and len(dst_node.args[1]) == 4):
+            new_nodes.append(g.call_function(ttnn.to_device, (new_nodes[-1], device)))
 
     insert_node_between(src_node, dst_idx, dst_node, new_nodes)
     return new_nodes[-1]
@@ -99,14 +107,16 @@ def try_add_data_move_out(src_node, dst_idx, dst_node) -> bool:
         return False
 
     g = dst_node.graph
+    new_nodes = list()
     with g.inserting_before(dst_node):
-        from_device = g.call_function(ttnn.from_device, (src_node,))
-        row_major_layout = g.call_function(
-            ttnn.to_layout, (from_device, DummyTtnnRowMajorLayout())
-        )
-        to_torch = g.call_function(ttnn.to_torch, (row_major_layout,))
+        if (is_tt_compute(src_node) and src_node.target != ttnn.reshape) or (src_node.target == ttnn.reshape and len(src_node.args[1]) == 4):
+            new_nodes.append(g.call_function(ttnn.from_device, (src_node,)))
+            new_nodes.append(g.call_function(
+                ttnn.to_layout, (new_nodes[-1], DummyTtnnRowMajorLayout())
+            ))
+        new_nodes.append(g.call_function(ttnn.to_torch, (new_nodes[-1] if new_nodes else src_node,)))
 
-    insert_node_between(src_node, dst_idx, dst_node, [from_device, row_major_layout, to_torch])
+    insert_node_between(src_node, dst_idx, dst_node, new_nodes)
     return True
 
 
