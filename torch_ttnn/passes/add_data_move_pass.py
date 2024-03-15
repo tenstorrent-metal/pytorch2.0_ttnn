@@ -30,6 +30,7 @@ def is_tt_compute(node) -> bool:
             ttnn.tanh,
             ttnn.reshape,
             ttnn.permute,
+            ttnn.relu,
         ]
     )
 

@@ -23,6 +23,12 @@ class ReplaceMoreTt(torch.fx.Transformer):
             return super().call_function(ttnn.reshape, args, kwargs)
         elif target == torch.ops.aten.permute.default:
             return super().call_function(ttnn.permute, args, kwargs)
+        elif target == torch.ops.aten.relu.default:
+            return super().call_function(ttnn.relu, args, kwargs)
+        elif target == torch.ops.aten.addmm.default:
+            # TODO(kevinwuMCW): include beta, alpha, and optional args
+            mm = super().call_function(ttnn.matmul, (args[1], args[2]), kwargs)
+            return super().call_function(ttnn.add, (args[0], mm), kwargs)
         return super().call_function(target, args, kwargs)
 
 
