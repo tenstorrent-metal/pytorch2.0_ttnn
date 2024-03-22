@@ -29,6 +29,13 @@ class ReplaceMoreTt(torch.fx.Transformer):
             # TODO(kevinwuMCW): include beta, alpha, and optional args
             mm = super().call_function(ttnn.matmul, (args[1], args[2]), kwargs)
             return super().call_function(ttnn.add, (args[0], mm), kwargs)
+        elif target == torch.ops.aten.div.Tensor:
+            recip = super().call_function(ttnn.reciprocal, (args[1],), kwargs)
+            return super().call_function(ttnn.mul, (args[0], recip), kwargs)
+        elif target == torch.ops.aten.bmm.default:
+            return super().call_function(ttnn.matmul, args, kwargs)
+        elif target == torch.ops.aten.gelu.default:
+            return super().call_function(ttnn.gelu, args, kwargs)
         return super().call_function(target, args, kwargs)
 
 
