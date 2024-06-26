@@ -1,7 +1,7 @@
 import torch
 import torch_ttnn
+import ttnn
 import unittest
-from torch_ttnn import ttnn
 from torch.fx.passes.dialect.common.cse_pass import CSEPass
 
 
@@ -34,9 +34,9 @@ class TestModules(unittest.TestCase):
         inputs_else = [-inputs_then[0]]
         result_before_then = m.forward(*inputs_then)
         result_before_else = m.forward(*inputs_else)
-        option = torch_ttnn.TorchTtnnOption(device=self.device)
+        option = torch_ttnn.TenstorrentBackendOption(device=self.device)
         # The compilation is lazy, so we need to run forward once to trigger the compilation
-        m = torch.compile(m, backend=torch_ttnn.backend(option))
+        m = torch.compile(m, backend="ttnn", options=option)
         result_after_then = m.forward(*inputs_then)
         result_after_else = m.forward(*inputs_else)
 

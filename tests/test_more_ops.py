@@ -1,7 +1,7 @@
 import torch
 import torch_ttnn
+import ttnn
 import unittest
-from torch_ttnn import ttnn
 
 
 class SubModule(torch.nn.Module):
@@ -84,10 +84,10 @@ class TestModules(unittest.TestCase):
         input_shapes = m.input_shapes()
         inputs = [torch.rand(shape, dtype=torch.bfloat16) for shape in input_shapes]
         result_before = m.forward(*inputs)
-        option = torch_ttnn.TorchTtnnOption(device=self.device)
+        option = torch_ttnn.TenstorrentBackendOption(device=self.device)
         option.gen_graphviz = True
         # The compilation is lazy, so we need to run forward once to trigger the compilation
-        m = torch.compile(m, backend=torch_ttnn.backend(option))
+        m = torch.compile(m, backend="ttnn", options=option)
         result_after = m.forward(*inputs)
         option._out_fx_graphs[0].print_tabular()
 
@@ -109,10 +109,10 @@ class TestModules(unittest.TestCase):
             torch.randint(1, 5, shape).type(torch.bfloat16) for shape in input_shapes
         ]
         result_before = m.forward(*inputs)
-        option = torch_ttnn.TorchTtnnOption(device=self.device)
+        option = torch_ttnn.TenstorrentBackendOption(device=self.device)
         option.gen_graphviz = True
         # The compilation is lazy, so we need to run forward once to trigger the compilation
-        m = torch.compile(m, backend=torch_ttnn.backend(option))
+        m = torch.compile(m, backend="ttnn", options=option)
         result_after = m.forward(*inputs)
         option._out_fx_graphs[0].print_tabular()
 
@@ -133,10 +133,10 @@ class TestModules(unittest.TestCase):
         inputs = [torch.rand(shape, dtype=torch.bfloat16) for shape in input_shapes]
         axis = -1
         result_before = m.forward(*inputs, axis)
-        option = torch_ttnn.TorchTtnnOption(device=self.device)
+        option = torch_ttnn.TenstorrentBackendOption(device=self.device)
         option.gen_graphviz = True
         # The compilation is lazy, so we need to run forward once to trigger the compilation
-        m = torch.compile(m, backend=torch_ttnn.backend(option))
+        m = torch.compile(m, backend="ttnn", options=option)
         result_after = m.forward(*inputs, axis)
         option._out_fx_graphs[0].print_tabular()
 
@@ -156,10 +156,10 @@ class TestModules(unittest.TestCase):
         input_shapes = m.input_shapes()
         inputs = [torch.rand(shape, dtype=torch.bfloat16) for shape in input_shapes]
         result_before = m.forward(*inputs)
-        option = torch_ttnn.TorchTtnnOption(device=self.device)
+        option = torch_ttnn.TenstorrentBackendOption(device=self.device)
         option.gen_graphviz = True
         # The compilation is lazy, so we need to run forward once to trigger the compilation
-        m = torch.compile(m, backend=torch_ttnn.backend(option))
+        m = torch.compile(m, backend="ttnn", options=option)
         result_after = m.forward(*inputs)
         option._out_fx_graphs[0].print_tabular()
 
@@ -180,10 +180,10 @@ class TestModules(unittest.TestCase):
         inputs = [torch.rand(shape, dtype=torch.bfloat16) for shape in input_shapes]
         new_shape = (2, 8)
         result_before = m.forward(*inputs, new_shape)
-        option = torch_ttnn.TorchTtnnOption(device=self.device)
+        option = torch_ttnn.TenstorrentBackendOption(device=self.device)
         option.gen_graphviz = True
         # The compilation is lazy, so we need to run forward once to trigger the compilation
-        m = torch.compile(m, backend=torch_ttnn.backend(option))
+        m = torch.compile(m, backend="ttnn", options=option)
         result_after = m.forward(*inputs, new_shape)
         option._out_fx_graphs[0].print_tabular()
 
@@ -207,10 +207,10 @@ class TestModules(unittest.TestCase):
         inputs = [torch.rand(shape, dtype=torch.bfloat16) for shape in input_shapes]
         order = (1, 0)
         result_before = m.forward(*inputs, order)
-        option = torch_ttnn.TorchTtnnOption(device=self.device)
+        option = torch_ttnn.TenstorrentBackendOption(device=self.device)
         option.gen_graphviz = True
         # The compilation is lazy, so we need to run forward once to trigger the compilation
-        m = torch.compile(m, backend=torch_ttnn.backend(option))
+        m = torch.compile(m, backend="ttnn", options=option)
         result_after = m.forward(*inputs, order)
         option._out_fx_graphs[0].print_tabular()
 

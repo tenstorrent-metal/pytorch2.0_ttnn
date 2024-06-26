@@ -12,11 +12,12 @@ class FooModule(torch.Module):
 # Create a module
 module = FooModule()
 # Compile the module, with ttnn backend
-ttnn_module = torch.compile(module, torch_ttnn.backend)
-# Running inference
+device: ttnn.Device = ttnn.open_device(device_id=0)
+option = torch_ttnn.TenstorrentBackendOption(device=self.device)
+ttnn_module = torch.compile(module, backend='ttnn', option=option)
+# Running inference with ttnn device
 ttnn_module(input_data)
 ```
-
 
 
 # Tracer
@@ -24,7 +25,7 @@ The tracer dump the information of fx graph such as node's op_name and shape.
 
 For example, you can run this script to parse the information
 ```
-PYTHONPATH=$(pwd) python3 tools/run_torchvision.py --backend torch_stat --backward --profile
+PYTHONPATH=$(pwd) python3 tools/stat_models.py --trace_orig --backward --profile
 ls stat/raw
 ```
 
@@ -51,3 +52,28 @@ The `*_total_*_size_dist/` statistics the `op_type`'s input/output_size distribu
  - Notice: the [aten ir interface is in there](https://pytorch.org/docs/stable/torch.compiler_ir.html)
 
 [The `profile/` is the tools provided by pytorch](https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html), you can open it by the url: chrome://tracing
+
+
+# For developers
+
+## Install torch-ttnn with editable mode
+
+During development, you may want to use the torch-ttnn package for testing.
+In order to do that, you can install the torch-ttnn package in "editable"
+mode with
+
+```shell
+pip install -e .
+```
+
+Now, you can utilize `torch_ttnn` in your Python code. Any modifications you make to the `torch_ttnn` package will take effect immediately, eliminating the need for constant reinstallation via pip.
+
+## Build wheel file
+
+For developers want to deploy the wheel, you can build the wheel file with
+
+```shell
+python -m build
+```
+
+Then you can upload the `.whl` file to the PyPI (Python Package Index).
