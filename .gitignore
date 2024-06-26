@@ -1,6 +1,9 @@
 __pycache__
+dist
+torch_ttnn.egg-info
 .vscode
 stat
 *.dot
 *.svg
 *.csv
+*.pt

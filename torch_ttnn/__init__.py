@@ -1,8 +1,10 @@
-from .backend import backend
-from .backend import TorchTtnnOption
+# The inferface of this backend
 
-try:
-    import ttnn
-except ImportError:
-    print("ttnn is not installed, use mock_ttnn instead")
-    from . import mock_ttnn as ttnn
+from .backend import ttnn_backend
+from .backend import TenstorrentBackendOption
+import torch as _torch
+
+_torch._dynamo.backends.registry.register_backend(name="ttnn", compiler_fn=ttnn_backend)
+
+# To wrap the ttnn ops
+from . import wrap_ttnn_ops

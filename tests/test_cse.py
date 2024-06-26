@@ -1,7 +1,7 @@
 import torch
 import torch_ttnn
+import ttnn
 import unittest
-from torch_ttnn import ttnn
 from torch.fx.passes.dialect.common.cse_pass import CSEPass
 
 
@@ -30,9 +30,9 @@ class TestModules(unittest.TestCase):
         input_shapes = m.input_shapes()
         inputs = [torch.rand(shape, dtype=torch.bfloat16) for shape in input_shapes]
         result_before = m.forward(*inputs)
-        option = torch_ttnn.TorchTtnnOption(device=self.device)
+        option = torch_ttnn.TenstorrentBackendOption(device=self.device)
         # The compilation is lazy, so we need to run forward once to trigger the compilation
-        m = torch.compile(m, backend=torch_ttnn.backend(option))
+        m = torch.compile(m, backend="ttnn", options=option)
         result_after = m.forward(*inputs)
         self.assertEqual(1, len(option._out_fx_graphs))
         option._out_fx_graphs[0].print_tabular()

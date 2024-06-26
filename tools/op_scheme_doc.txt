@@ -1,0 +1,123 @@
+prims.abs	abs(Tensor self) -> Tensor
+prims.acos	acos(Tensor self) -> Tensor
+prims.acosh	acosh(Tensor self) -> Tensor
+prims.asin	asin(Tensor self) -> Tensor
+prims.asinh	asinh(Tensor self) -> Tensor
+prims.atan	atan(Tensor self) -> Tensor
+prims.atanh	atanh(Tensor self) -> Tensor
+prims.cos	cos(Tensor self) -> Tensor
+prims.cosh	cosh(Tensor self) -> Tensor
+prims.bessel_i0	bessel_i0(Tensor self) -> Tensor
+prims.bessel_i0e	bessel_i0e(Tensor self) -> Tensor
+prims.bessel_i1	bessel_i1(Tensor self) -> Tensor
+prims.bessel_i1e	bessel_i1e(Tensor self) -> Tensor
+prims.bessel_j0	bessel_j0(Tensor self) -> Tensor
+prims.bessel_j1	bessel_j1(Tensor self) -> Tensor
+prims.bitwise_not	bitwise_not(Tensor self) -> Tensor
+prims.cbrt	cbrt(Tensor self) -> Tensor
+prims.ceil	ceil(Tensor self) -> Tensor
+prims.conj_physical	conj_physical(Tensor self) -> Tensor
+prims.digamma	digamma(Tensor self) -> Tensor
+prims.erf	erf(Tensor self) -> Tensor
+prims.erf_inv	erf_inv(Tensor self) -> Tensor
+prims.erfc	erfc(Tensor self) -> Tensor
+prims.erfcx	erfcx(Tensor self) -> Tensor
+prims.exp	exp(Tensor self) -> Tensor
+prims.expm1	expm1(Tensor self) -> Tensor
+prims.exp2	exp2(Tensor self) -> Tensor
+prims.fill	fill(Tensor self, Scalar value) -> Tensor
+prims.floor	floor(Tensor self) -> Tensor
+prims.imag	imag(Tensor self) -> Tensor
+prims.isfinite	isfinite(Tensor self) -> Tensor
+prims.lgamma	lgamma(Tensor self) -> Tensor
+prims.log	log(Tensor self) -> Tensor
+prims.log1p	log1p(Tensor self) -> Tensor
+prims.log2	log2(Tensor self) -> Tensor
+prims.log10	log10(Tensor self) -> Tensor
+prims.ndtri	ndtri(Tensor self) -> Tensor
+prims.neg	neg(Tensor self) -> Tensor
+prims.real	real(Tensor self) -> Tensor
+prims.reciprocal	reciprocal(Tensor self) -> Tensor
+prims.round	round(Tensor self) -> Tensor
+prims.sign	sign(Tensor self) -> Tensor
+prims.signbit	signbit(Tensor self) -> Tensor
+prims.sin	sin(Tensor self) -> Tensor
+prims.sinh	sinh(Tensor self) -> Tensor
+prims.spherical_bessel_j0	spherical_bessel_j0(Tensor self) -> Tensor
+prims.sqrt	sqrt(Tensor self) -> Tensor
+prims.tan	tan(Tensor self) -> Tensor
+prims.tanh	tanh(Tensor self) -> Tensor
+prims.trunc	trunc(Tensor self) -> Tensor
+prims.add	add(Tensor self, Tensor other) -> Tensor
+prims.atan2	atan2(Tensor self, Tensor other) -> Tensor
+prims.bitwise_and	bitwise_and(Tensor self, Tensor other) -> Tensor
+prims.bitwise_or	bitwise_or(Tensor self, Tensor other) -> Tensor
+prims.bitwise_xor	bitwise_xor(Tensor self, Tensor other) -> Tensor
+prims.div	div(Tensor self, Tensor other) -> Tensor
+prims.eq	eq(Tensor self, Tensor other) -> Tensor
+prims.fmax	fmax(Tensor self, Tensor other) -> Tensor
+prims.fmin	fmin(Tensor self, Tensor other) -> Tensor
+prims.fmod	fmod(Tensor self, Tensor other) -> Tensor
+prims.frexp	frexp(Tensor self) -> (Tensor mantissa, Tensor exponent)
+prims.gcd	gcd(Tensor self, Tensor other) -> Tensor
+prims.ge	ge(Tensor self, Tensor other) -> Tensor
+prims.gt	gt(Tensor self, Tensor other) -> Tensor
+prims.hypot	hypot(Tensor self, Tensor other) -> Tensor
+prims.igamma	igamma(Tensor self, Tensor other) -> Tensor
+prims.igammac	igammac(Tensor self, Tensor other) -> Tensor
+prims.le	le(Tensor self, Tensor other) -> Tensor
+prims.lt	lt(Tensor self, Tensor other) -> Tensor
+prims.maximum	maximum(Tensor self, Tensor other) -> Tensor
+prims.minimum	minimum(Tensor self, Tensor other) -> Tensor
+prims.mul	mul(Tensor self, Tensor other) -> Tensor
+prims.ne	ne(Tensor self, Tensor other) -> Tensor
+prims.nextafter	nextafter(Tensor self, Tensor other) -> Tensor
+prims.pow	pow(Tensor self, Tensor other) -> Tensor
+prims.remainder	remainder(Tensor self, Tensor other) -> Tensor
+prims.rsqrt	rsqrt(Tensor self) -> Tensor
+prims.shift_left	shift_left(Tensor self, Tensor other) -> Tensor
+prims.shift_right_arithmetic	shift_right_arithmetic(Tensor self, Tensor other) -> Tensor
+prims.sub	sub(Tensor self, Tensor other) -> Tensor
+prims.zeta	zeta(Tensor self, Tensor other) -> Tensor
+prims.as_strided	as_strided(Tensor(a!) a, SymInt[] size, SymInt[] stride, SymInt storage_offset) -> Tensor(a!)
+prims.broadcast_in_dim	broadcast_in_dim(Tensor(a) a, SymInt[] shape, int[] broadcast_dimensions) -> Tensor(a)
+prims.collapse_view	collapse_view(Tensor(a) a, int start, int end) -> Tensor(a)
+prims.conj	conj(Tensor(a) a) -> Tensor(a)
+prims.slice	slice(Tensor(a) a, SymInt[] start_indices, SymInt[] limit_indices, SymInt[]? strides=None) -> Tensor(a)
+prims.slice_in_dim	slice_in_dim(Tensor(a) a, SymInt start_index, SymInt limit_index, int stride=1, int axis=0) -> Tensor(a)
+prims.split_dim	split_dim(Tensor(a) a, int dim, SymInt outer_length) -> Tensor(a)
+prims.squeeze	squeeze(Tensor(a) a, int[] dimensions) -> Tensor(a)
+prims.transpose	transpose(Tensor(a) a, int[] permutation) -> Tensor(a)
+prims.view_of	view_of(Tensor(a) a) -> Tensor
+prims.view_of_dtype	view_of_dtype(Tensor(a) a, ScalarType dtype) -> Tensor
+prims.as_strided_scatter	as_strided_scatter(Tensor self, Tensor src, SymInt[] size, SymInt[] stride, SymInt storage_offset) -> Tensor
+prims.collapse	collapse(Tensor a, int start, int end) -> Tensor
+prims.cat	cat(Tensor[] tensors, int dim) -> Tensor
+prims.reshape	reshape(Tensor a, SymInt[] shape) -> Tensor
+prims.rev	rev(Tensor a, int[] dims) -> Tensor
+prims.where	where(Tensor pred, Tensor a, Tensor b) -> Tensor
+prims.clone	clone(Tensor self, *, MemoryFormat? memory_format=None) -> Tensor
+prims.convert_element_type	convert_element_type(Tensor a, ScalarType dtype) -> Tensor
+prims.device_put	device_put(Tensor a, Device device) -> Tensor
+prims.item	item(Tensor a) -> Scalar
+prims.maximum_value	maximum_value(ScalarType dtype) -> Scalar
+prims.minimum_value	minimum_value(ScalarType dtype) -> Scalar
+prims.copy_strided	copy_strided(Tensor a, SymInt[] stride) -> Tensor
+prims.copy_to	copy_to(Tensor(a!) a, Tensor b) -> Tensor(a!)
+prims.resize	resize(Tensor(a!) a, SymInt[] shape) -> Tensor(a!)
+prims.amax	amax(Tensor inp, int[]? dims, *, ScalarType? output_dtype=None) -> Tensor
+prims.amin	amin(Tensor inp, int[]? dims, *, ScalarType? output_dtype=None) -> Tensor
+prims.prod	prod(Tensor inp, int[]? dims, *, ScalarType? output_dtype=None) -> Tensor
+prims.sum	sum(Tensor inp, int[]? dims, *, ScalarType? output_dtype=None) -> Tensor
+prims.xor_sum	xor_sum(Tensor inp, int[]? dims, *, ScalarType? output_dtype=None) -> Tensor
+prims.var	var(Tensor inp, int[]? dims, *, float correction, ScalarType? output_dtype=None) -> Tensor
+prims.empty_strided	empty_strided(SymInt[] shape, SymInt[] strides, *, ScalarType dtype, Device device, bool requires_grad) -> Tensor
+prims.empty_permuted	empty_permuted(SymInt[] shape, int[] physical_layout, *, ScalarType dtype, Device device, bool requires_grad) -> Tensor
+prims.scalar_tensor	scalar_tensor(Scalar s, *, ScalarType? dtype=None, Device? device=None) -> Tensor
+prims.iota	iota(SymInt length, *, SymInt start, SymInt step, ScalarType dtype, Device device, bool requires_grad) -> Tensor
+prims.svd	svd(Tensor A, *, bool full_matrices) -> (Tensor U, Tensor S, Tensor Vh)
+prims.normal	normal(SymInt[] shape, *, Scalar mean, Scalar std, ScalarType dtype, Device device, bool requires_grad, Generator? generator=None) -> Tensor
+prims.uniform	uniform(SymInt[] shape, *, Scalar low, Scalar high, ScalarType dtype, Device device, Generator? generator=None) -> Tensor
+prims.fft_r2c	fft_r2c(Tensor self, *, int[] dim, bool onesided) -> Tensor
+prims.fft_c2c	fft_c2c(Tensor self, *, int[] dim, bool forward) -> Tensor
+prims.fft_c2r	fft_c2r(Tensor self, *, int[] dim, SymInt last_dim_size) -> Tensor

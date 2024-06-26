@@ -1,0 +1,21 @@
+# list of sow2
+detr_resnet50
+retinanet_resnet50_fpn
+mobilenet_v2
+mobilenet_v3_small
+vit_b_16
+resnet50
+regnet_x_16gf
+ssd300_vgg16
+ssdlite320_mobilenet_v3_large
+swin_v2_b
+monodepth2_depth
+deit
+hardnet
+unet_carvana
+mlp-mixer
+mobilenetv1
+segformer
+stable-diffusion-v1-5
+unet-brain
+yolov5
