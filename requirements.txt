@@ -6,4 +6,5 @@ tabulate==0.9.0
 networkx==3.1
 graphviz
 matplotlib==3.7.1
-https://github.com/tenstorrent/tt-metal/releases/download/v0.50.0-rc18/metal_libs-0.50.0rc18+wormhole.b0-cp38-cp38-linux_x86_64.whl
+https://github.com/tenstorrent/tt-metal/releases/download/v0.50.0-rc18/metal_libs-0.50.0rc18+grayskull-cp38-cp38-linux_x86_64.whl
+#https://github.com/tenstorrent/tt-metal/releases/download/v0.50.0-rc18/metal_libs-0.50.0rc18+wormhole.b0-cp38-cp38-linux_x86_64.whl

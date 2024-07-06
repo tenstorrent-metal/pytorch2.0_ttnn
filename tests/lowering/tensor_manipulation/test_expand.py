@@ -1,6 +1,6 @@
 import torch
 import torch_ttnn
-import unittest
+import pytest
 import ttnn
 import tt_lib
 from torch_ttnn.utils import (
@@ -16,9 +16,6 @@ class ExpandModule(torch.nn.Module):
     def forward(self, x, new_shape):
         return x.expand(new_shape)
 
-    def input_shapes(self):
-        return [(1, 4), (4, 4)]
-
 
 class ExpandAfterOpModule(torch.nn.Module):
     def __init__(self):
@@ -28,9 +25,6 @@ class ExpandAfterOpModule(torch.nn.Module):
         a = torch.clone(x)
         return a.expand(new_shape)
 
-    def input_shapes(self):
-        return [(1, 4), (4, 4)]
-
 
 class ExpandBeforeOpModule(torch.nn.Module):
     def __init__(self):
@@ -39,9 +33,6 @@ class ExpandBeforeOpModule(torch.nn.Module):
     def forward(self, x, new_shape):
         ex = x.expand(new_shape)
         return torch.add(ex, ex)
-
-    def input_shapes(self):
-        return [(1, 4), (4, 4)]
 
 
 class ExpandBetweenOpsModule(torch.nn.Module):
@@ -53,135 +44,77 @@ class ExpandBetweenOpsModule(torch.nn.Module):
         ex = a.expand(new_shape)
         return torch.add(ex, ex)
 
-    def input_shapes(self):
-        return [(1, 4), (4, 4)]
 
+@pytest.mark.parametrize(
+    "module_class",
+    [
+        ExpandModule,
+        ExpandAfterOpModule,
+        ExpandBeforeOpModule,
+        ExpandBetweenOpsModule,
+    ],
+)
+@pytest.mark.parametrize(
+    "input_shapes",
+    [
+        [(1, 4), (4, 4)],
+        [(2, 2), (4, 4)],
+        [(3, 3), (6, 6)],
+    ],
+)
+def test_expand_modules(compiler_options, module_class, input_shapes):
+    m = module_class()
+    tensor = torch.rand(input_shapes[0], dtype=torch.bfloat16)
+    new_shape = input_shapes[1]
+    inputs = [tensor, new_shape]
+    result_before = m.forward(*inputs)
 
-class TestModules(unittest.TestCase):
-    def setUp(self):
-        # Open device 0
-        self.device: ttnn.Device = ttnn.open_device(device_id=0)
-        # For AutoFormat
-        tt_lib.device.SetDefaultDevice(self.device)
+    compiler_options.gen_graphviz = True
+    # The compilation is lazy, so we need to run forward once to trigger the compilation
+    m = torch.compile(m, backend=torch_ttnn.backend, options=compiler_options)
+    result_after = m.forward(*inputs)
+    compiler_options._out_fx_graphs[0].print_tabular()
 
-    def tearDown(self):
-        # Close the device
-        ttnn.close_device(self.device)
+    # Check the graph has been rewritten and contains ttnn ops
+    nodes = list(compiler_options._out_fx_graphs[0].nodes)
+    if module_class == ExpandModule:
+        assert nodes[4].target == ttnn.repeat
+        assert nodes[4].args[1].target == ttnn.Shape
+        assert nodes[5].target == ttnn.from_device
+        assert nodes[6].target == ttnn.to_layout
+        assert nodes[7].target == ttnn.to_torch
+    elif module_class == ExpandAfterOpModule:
+        assert nodes[8].target == ttnn.repeat
+        assert nodes[8].args[0].target == ttnn.to_layout
+        assert nodes[8].args[0].args[0].target == ttnn.clone
+        assert isinstance(nodes[8].args[0].args[1], DummyTtnnRowMajorLayout)
+        assert nodes[8].args[1].target == ttnn.Shape
+        assert nodes[9].target == ttnn.from_device
+        assert nodes[10].target == ttnn.to_layout
+        assert nodes[11].target == ttnn.to_torch
+    elif module_class == ExpandBeforeOpModule:
+        assert nodes[4].target == ttnn.repeat
+        assert nodes[4].args[1].target == ttnn.Shape
+        assert nodes[5].target == ttnn.to_layout
+        assert nodes[5].args[0].target == ttnn.repeat
+        assert isinstance(nodes[5].args[1], DummyTtnnTileLayout)
+        assert nodes[6].target == ttnn.add
+        assert nodes[7].target == ttnn.from_device
+        assert nodes[8].target == ttnn.to_layout
+        assert nodes[9].target == ttnn.to_torch
+    elif module_class == ExpandBetweenOpsModule:
+        assert nodes[8].target == ttnn.repeat
+        assert nodes[8].args[0].target == ttnn.to_layout
+        assert nodes[8].args[0].args[0].target == ttnn.clone
+        assert isinstance(nodes[8].args[0].args[1], DummyTtnnRowMajorLayout)
+        assert nodes[8].args[1].target == ttnn.Shape
+        assert nodes[9].target == ttnn.to_layout
+        assert nodes[9].args[0].target == ttnn.repeat
+        assert isinstance(nodes[9].args[1], DummyTtnnTileLayout)
+        assert nodes[10].target == ttnn.add
+        assert nodes[11].target == ttnn.from_device
+        assert nodes[12].target == ttnn.to_layout
+        assert nodes[13].target == ttnn.to_torch
 
-    def test_expand(self):
-        m = ExpandModule()
-        input_shapes = m.input_shapes()
-        tensor = torch.rand(input_shapes[0], dtype=torch.bfloat16)
-        new_shape = input_shapes[1]
-        inputs = [tensor, new_shape]
-        result_before = m.forward(*inputs)
-        option = torch_ttnn.TorchTtnnOption(device=self.device)
-        option.gen_graphviz = True
-        # The compilation is lazy, so we need to run forward once to trigger the compilation
-        m = torch.compile(m, backend=torch_ttnn.backend, options=option)
-        result_after = m.forward(*inputs)
-        option._out_fx_graphs[0].print_tabular()
-
-        # Check the graph has be rewritten and contain ttnn ops
-        nodes = list(option._out_fx_graphs[0].nodes)
-        self.assertTrue(nodes[4].target == ttnn.repeat)
-        self.assertTrue(nodes[4].args[1].target == ttnn.Shape)
-        self.assertTrue(nodes[5].target == ttnn.from_device)
-        self.assertTrue(nodes[6].target == ttnn.to_layout)
-        self.assertTrue(nodes[7].target == ttnn.to_torch)
-        # Check inference result
-        self.assertTrue(torch.allclose(result_before, result_after, rtol=0.2))
-
-    def test_expand_after_op(self):
-        m = ExpandAfterOpModule()
-        input_shapes = m.input_shapes()
-        tensor = torch.rand(input_shapes[0], dtype=torch.bfloat16)
-        new_shape = input_shapes[1]
-        inputs = [tensor, new_shape]
-        result_before = m.forward(*inputs)
-        option = torch_ttnn.TorchTtnnOption(device=self.device)
-        option.gen_graphviz = True
-        # The compilation is lazy, so we need to run forward once to trigger the compilation
-        m = torch.compile(m, backend=torch_ttnn.backend, options=option)
-        result_after = m.forward(*inputs)
-        option._out_fx_graphs[0].print_tabular()
-
-        # Check the graph has be rewritten and contain ttnn ops
-        nodes = list(option._out_fx_graphs[0].nodes)
-        self.assertTrue(nodes[8].target == ttnn.repeat)
-        self.assertTrue(nodes[8].args[0].target == ttnn.to_layout)
-        self.assertTrue(nodes[8].args[0].args[0].target == ttnn.clone)
-        self.assertTrue(
-            type(nodes[8].args[0].args[1]) is type(DummyTtnnRowMajorLayout())
-        )
-        self.assertTrue(nodes[8].args[1].target == ttnn.Shape)
-        self.assertTrue(nodes[9].target == ttnn.from_device)
-        self.assertTrue(nodes[10].target == ttnn.to_layout)
-        self.assertTrue(nodes[11].target == ttnn.to_torch)
-        # Check inference result
-        self.assertTrue(torch.allclose(result_before, result_after, rtol=0.2))
-
-    def test_expand_before_op(self):
-        m = ExpandBeforeOpModule()
-        input_shapes = m.input_shapes()
-        tensor = torch.rand(input_shapes[0], dtype=torch.bfloat16)
-        new_shape = input_shapes[1]
-        inputs = [tensor, new_shape]
-        result_before = m.forward(*inputs)
-        option = torch_ttnn.TorchTtnnOption(device=self.device)
-        option.gen_graphviz = True
-        # The compilation is lazy, so we need to run forward once to trigger the compilation
-        m = torch.compile(m, backend=torch_ttnn.backend, options=option)
-        result_after = m.forward(*inputs)
-        option._out_fx_graphs[0].print_tabular()
-
-        # Check the graph has be rewritten and contain ttnn ops
-        nodes = list(option._out_fx_graphs[0].nodes)
-        self.assertTrue(nodes[4].target == ttnn.repeat)
-        self.assertTrue(nodes[4].args[1].target == ttnn.Shape)
-        self.assertTrue(nodes[5].target == ttnn.to_layout)
-        self.assertTrue(nodes[5].args[0].target == ttnn.repeat)
-        self.assertTrue(type(nodes[5].args[1]) is type(DummyTtnnTileLayout()))
-        self.assertTrue(nodes[6].target == ttnn.add)
-        self.assertTrue(nodes[7].target == ttnn.from_device)
-        self.assertTrue(nodes[8].target == ttnn.to_layout)
-        self.assertTrue(nodes[9].target == ttnn.to_torch)
-        # Check inference result
-        self.assertTrue(torch.allclose(result_before, result_after, rtol=0.2))
-
-    def test_expand_between_ops(self):
-        m = ExpandBetweenOpsModule()
-        input_shapes = m.input_shapes()
-        tensor = torch.rand(input_shapes[0], dtype=torch.bfloat16)
-        new_shape = input_shapes[1]
-        inputs = [tensor, new_shape]
-        result_before = m.forward(*inputs)
-        option = torch_ttnn.TorchTtnnOption(device=self.device)
-        option.gen_graphviz = True
-        # The compilation is lazy, so we need to run forward once to trigger the compilation
-        m = torch.compile(m, backend=torch_ttnn.backend, options=option)
-        result_after = m.forward(*inputs)
-        option._out_fx_graphs[0].print_tabular()
-
-        # Check the graph has be rewritten and contain ttnn ops
-        nodes = list(option._out_fx_graphs[0].nodes)
-        self.assertTrue(nodes[8].target == ttnn.repeat)
-        self.assertTrue(nodes[8].args[0].target == ttnn.to_layout)
-        self.assertTrue(nodes[8].args[0].args[0].target == ttnn.clone)
-        self.assertTrue(
-            type(nodes[8].args[0].args[1]) is type(DummyTtnnRowMajorLayout())
-        )
-        self.assertTrue(nodes[8].args[1].target == ttnn.Shape)
-        self.assertTrue(nodes[9].target == ttnn.to_layout)
-        self.assertTrue(nodes[9].args[0].target == ttnn.repeat)
-        self.assertTrue(type(nodes[9].args[1]) is type(DummyTtnnTileLayout()))
-        self.assertTrue(nodes[10].target == ttnn.add)
-        self.assertTrue(nodes[11].target == ttnn.from_device)
-        self.assertTrue(nodes[12].target == ttnn.to_layout)
-        self.assertTrue(nodes[13].target == ttnn.to_torch)
-        # Check inference result
-        self.assertTrue(torch.allclose(result_before, result_after, rtol=0.2))
-
-
-if __name__ == "__main__":
-    unittest.main()
+    # Check inference result
+    assert torch.allclose(result_before, result_after, rtol=0.2)
