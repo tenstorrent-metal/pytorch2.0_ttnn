@@ -3,7 +3,7 @@ import torch_ttnn
 import pytest
 import ttnn
 
-from tests.utils import check_with_pcc
+from tests.utils import assert_with_pcc
 
 
 class TransposeModule(torch.nn.Module):
@@ -21,6 +21,7 @@ class TransposeModule(torch.nn.Module):
         # If not, this runtime error will be thrown:
         # RuntimeError: TT_FATAL @ ../tt_metal/impl/buffers/buffer.cpp:41: page_size % sizeof(uint32_t) == 0
         ((5, 3, 2), 0, 2),
+        ((1, 192, 1344), 1, 2),
     ],
 )
 def test_transpose(device, input_shape, dim0, dim1):
@@ -38,4 +39,5 @@ def test_transpose(device, input_shape, dim0, dim1):
     nodes = list(option._out_fx_graphs[0].nodes)
     [node.target for node in nodes].count(ttnn.permute) == 1
     # Check inference result
-    check_with_pcc(result_before, result_after)
+    print(result_before.shape, result_after.shape)
+    assert_with_pcc(result_before, result_after)

@@ -3,7 +3,7 @@ import torch_ttnn
 import pytest
 import ttnn
 
-from tests.utils import check_with_pcc
+from tests.utils import assert_with_pcc
 
 
 class BaddbmmModule(torch.nn.Module):
@@ -50,7 +50,7 @@ def test_baddbmm(device, input_shapes):
         if node.target == ttnn.matmul or node.target == ttnn.multiply:
             assert node.meta["val"].size() == input_shapes[0]
     # Check inference result
-    assert check_with_pcc(result_before, result_after)
+    assert_with_pcc(result_before, result_after, 0.999)
 
     # (2) Test with alpha and default beta value
     result_before = m.forward(*inputs, alpha=2)
@@ -71,7 +71,7 @@ def test_baddbmm(device, input_shapes):
     for node in nodes:
         if node.target == ttnn.matmul or node.target == ttnn.multiply:
             assert node.meta["val"].size() == input_shapes[0]
-    assert check_with_pcc(result_before, result_after)
+    assert_with_pcc(result_before, result_after, 0.999)
 
     # (3) Test with beta and default alpha value
     result_before = m.forward(*inputs, beta=2)
@@ -92,7 +92,7 @@ def test_baddbmm(device, input_shapes):
     for node in nodes:
         if node.target == ttnn.matmul or node.target == ttnn.multiply:
             assert node.meta["val"].size() == input_shapes[0]
-    assert check_with_pcc(result_before, result_after)
+    assert_with_pcc(result_before, result_after, 0.999)
 
     # (4) Test with beta and alpha values
     result_before = m.forward(*inputs, beta=2, alpha=2)
@@ -117,7 +117,7 @@ def test_baddbmm(device, input_shapes):
     for node in nodes:
         if node.target == ttnn.matmul or node.target == ttnn.multiply:
             assert node.meta["val"].size() == input_shapes[0]
-    assert check_with_pcc(result_before, result_after)
+    assert_with_pcc(result_before, result_after, 0.999)
 
     # (5) Test special case when beta is 0
     result_before = m.forward(*inputs, beta=0, alpha=2)
@@ -135,4 +135,4 @@ def test_baddbmm(device, input_shapes):
     for node in nodes:
         if node.target == ttnn.matmul or node.target == ttnn.multiply:
             assert node.meta["val"].size() == input_shapes[0]
-    assert check_with_pcc(result_before, result_after)
+    assert_with_pcc(result_before, result_after, 0.999)

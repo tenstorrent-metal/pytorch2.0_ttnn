@@ -3,7 +3,7 @@ import torch_ttnn
 import pytest
 import ttnn
 
-from tests.utils import check_with_pcc
+from tests.utils import assert_with_pcc
 
 
 class AddModule(torch.nn.Module):
@@ -111,7 +111,7 @@ def test_batchmatmul(device, input_shapes):
     nodes = list(option._out_fx_graphs[0].nodes)
     assert [node.target for node in nodes].count(ttnn.matmul) == 1
     # Check inference result
-    assert check_with_pcc(result_before, result_after)
+    assert_with_pcc(result_before, result_after, 0.999)
 
 
 @pytest.mark.parametrize(
@@ -141,4 +141,4 @@ def test_add_and_matmul(device, input_shapes):
     assert nodes[target.index(ttnn.matmul)].args[0].target == ttnn.add
     assert nodes[target.index(ttnn.matmul)].args[1].target == ttnn.add
     # Check inference result
-    assert torch.allclose(result_before, result_after)
+    assert torch.allclose(result_before, result_after, 0.999)

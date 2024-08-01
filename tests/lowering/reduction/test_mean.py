@@ -3,7 +3,7 @@ import torch_ttnn
 import pytest
 import ttnn
 
-from tests.utils import check_with_pcc
+from tests.utils import assert_with_pcc
 
 
 class MeanDimModule(torch.nn.Module):
@@ -34,4 +34,4 @@ def test_mean_dim(device, input_shape, dim):
     nodes = list(option._out_fx_graphs[0].nodes)
     assert [node.target for node in nodes].count(ttnn.mean) == 1
     # Check inference result
-    assert check_with_pcc(result_before, result_after)
+    assert_with_pcc(result_before, result_after)

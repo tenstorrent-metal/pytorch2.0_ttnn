@@ -3,7 +3,7 @@ import torch_ttnn
 import pytest
 import ttnn
 
-from tests.utils import check_with_pcc
+from tests.utils import assert_with_pcc
 
 
 class LtModule(torch.nn.Module):
@@ -67,4 +67,4 @@ def test_lt_scalar(device, input_shapes):
         if node.target == ttnn.full:
             assert node.meta["val"].size() == input_shapes[0]
     # Check inference result
-    assert check_with_pcc(result_before, result_after)
+    assert_with_pcc(result_before, result_after)

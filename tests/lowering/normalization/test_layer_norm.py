@@ -3,7 +3,7 @@ import torch_ttnn
 import pytest
 import ttnn
 
-from tests.utils import check_with_pcc
+from tests.utils import assert_with_pcc
 
 
 class LayerNormModule(torch.nn.Module):
@@ -51,7 +51,7 @@ def test_layer_norm(device, batch, sentence_length, embedding_dim):
     nodes = list(option._out_fx_graphs[0].nodes)
     assert [node.target for node in nodes].count(ttnn.layer_norm) == 1
     # Check inference result
-    assert check_with_pcc(result_before, result_after, 0.9998)
+    assert_with_pcc(result_before, result_after, 0.9998)
 
 
 @pytest.mark.parametrize(
@@ -78,4 +78,4 @@ def test_layer_norm_with_other_op(device, batch, sentence_length, embedding_dim)
     nodes = list(option._out_fx_graphs[0].nodes)
     assert [node.target for node in nodes].count(ttnn.layer_norm) == 1
     # Check inference result
-    assert check_with_pcc(result_before, result_after, 0.9998)
+    assert_with_pcc(result_before, result_after, 0.9998)

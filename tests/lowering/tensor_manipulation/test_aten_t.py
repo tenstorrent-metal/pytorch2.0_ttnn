@@ -3,7 +3,7 @@ import torch_ttnn
 import pytest
 import ttnn
 
-from tests.utils import check_with_pcc
+from tests.utils import assert_with_pcc
 
 
 class AtenTModule(torch.nn.Module):
@@ -26,7 +26,7 @@ def _t(device, input_shapes):
     option._out_fx_graphs[0].print_tabular()
 
     # Check inference result
-    assert check_with_pcc(result_before, result_after)
+    assert_with_pcc(result_before, result_after)
 
     # Return nodes
     return list(option._out_fx_graphs[0].nodes)
