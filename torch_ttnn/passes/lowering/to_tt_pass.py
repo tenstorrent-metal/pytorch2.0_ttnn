@@ -8,6 +8,7 @@ from torch_ttnn.utils import (
     TtnnDramMemoryConfig,
 )
 import numpy as np
+from typing import Tuple
 
 from torch.fx.passes.infra.pass_base import PassBase, PassResult
 import torch.fx.traceback as fx_traceback
@@ -32,91 +33,100 @@ def are_args_from_int_output_ops(args):
                 return True
 
 
+def create_call_function(transformer, target, args, kwargs):
+    transformer.call_function(target, args, kwargs)
+
+
 class ReplaceMoreTt(torch.fx.Transformer):
+    def call_function_prop_meta(self, target, args=(), kwargs={}):
+        call_func = super().call_function(target, args, kwargs)
+        meta = fx_traceback.get_current_meta()
+        if meta is not None:
+            call_func.node.meta = meta
+        return call_func
+
     def call_function(self, target, args, kwargs):
         if are_args_from_int_output_ops(args):
-            call_func = super().call_function(target, args, kwargs)
+            call_func = self.call_function_prop_meta(target, args, kwargs)
         elif target == torch.ops.aten.sub.Tensor:
-            call_func = super().call_function(ttnn.sub, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.sub, args, kwargs)
         elif target == torch.ops.aten.rsub.Tensor:
             # TODO(kevinwuMCW): handle alpha parameter if exists
-            call_func = super().call_function(ttnn.sub, (args[1], args[0]), kwargs)
+            call_func = self.call_function_prop_meta(
+                ttnn.sub, (args[1], args[0]), kwargs
+            )
         elif target == torch.ops.aten.mul.Tensor:
-            call_func = super().call_function(ttnn.mul, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.mul, args, kwargs)
         elif target == torch.ops.aten._softmax.default:
-            call_func = super().call_function(ttnn.softmax, args[:2], kwargs)
+            call_func = self.call_function_prop_meta(ttnn.softmax, args[:2], kwargs)
         elif target == torch.ops.aten.tanh.default:
-            call_func = super().call_function(ttnn.tanh, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.tanh, args, kwargs)
         elif target == torch.ops.aten.view.default:
             # TODO(kevinwuTT): Handle restrictions from ttnn.reshape
-            call_func = super().call_function(target, args, kwargs)
+            call_func = self.call_function_prop_meta(target, args, kwargs)
         elif target == torch.ops.aten.permute.default:
-            call_func = super().call_function(ttnn.permute, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.permute, args, kwargs)
         elif target == torch.ops.aten.relu.default:
-            call_func = super().call_function(ttnn.relu, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.relu, args, kwargs)
         elif target == torch.ops.aten.addmm.default:
             # TODO(kevinwuMCW): include beta, alpha, and optional args
-            mm = super().call_function(ttnn.matmul, (args[1], args[2]), kwargs)
-            # Intermediate node meta is not preserved, this ensures retention
-            meta = fx_traceback.get_current_meta()
-            if meta is not None and "val" in meta:
-                mm.node.meta["val"] = meta["val"]
-            call_func = super().call_function(ttnn.add, (args[0], mm), kwargs)
+            mm = self.call_function_prop_meta(ttnn.matmul, (args[1], args[2]), kwargs)
+            call_func = self.call_function_prop_meta(ttnn.add, (args[0], mm), kwargs)
         elif target == torch.ops.aten.bmm.default:
-            call_func = super().call_function(ttnn.matmul, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.matmul, args, kwargs)
         elif target == torch.ops.aten.gelu.default:
-            call_func = super().call_function(ttnn.gelu, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.gelu, args, kwargs)
         elif target == torch.ops.aten.neg.default:
-            call_func = super().call_function(ttnn.neg, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.neg, args, kwargs)
         elif target == torch.ops.aten.tril.default:
-            call_func = super().call_function(ttnn.tril, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.tril, args, kwargs)
         elif target == torch.ops.aten.eq.Tensor:
-            call_func = super().call_function(ttnn.eq, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.eq, args, kwargs)
         elif target == torch.ops.aten.logical_not.default:
-            call_func = super().call_function(ttnn.logical_not, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.logical_not, args, kwargs)
         elif target == torch.ops.aten.zeros_like.default:
-            call_func = super().call_function(ttnn.zeros_like, args, {})
+            call_func = self.call_function_prop_meta(ttnn.zeros_like, args, {})
         elif target == torch.ops.aten.mean.dim:
             # change dim parameter to tuple
             new_args = list(args)
             new_args[1] = tuple(args[1]) if len(args[1]) > 1 else args[1][0]
-            call_func = super().call_function(ttnn.mean, tuple(new_args), kwargs)
+            call_func = self.call_function_prop_meta(ttnn.mean, tuple(new_args), kwargs)
         elif target == torch.ops.aten.add.Tensor:
-            call_func = super().call_function(ttnn.add, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.add, args, kwargs)
         elif target == torch.ops.aten.mm.default:
-            call_func = super().call_function(ttnn.matmul, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.matmul, args, kwargs)
         elif target == torch.ops.aten.pow.Tensor_Scalar:
-            call_func = super().call_function(ttnn.pow, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.pow, args, kwargs)
         elif target == torch.ops.aten.rsqrt.default:
-            call_func = super().call_function(ttnn.rsqrt, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.rsqrt, args, kwargs)
         elif target == torch.ops.aten.silu.default:
-            call_func = super().call_function(ttnn.silu, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.silu, args, kwargs)
         elif target == torch.ops.aten._adaptive_avg_pool2d.default:
             # assumes output size is (1, 1)
-            call_func = super().call_function(
+            call_func = self.call_function_prop_meta(
                 ttnn.global_avg_pool2d, (args[0],), kwargs
             )
         elif target == torch.ops.aten.clamp.default:
-            call_func = super().call_function(ttnn.clip, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.clip, args, kwargs)
         elif target == torch.ops.aten.squeeze.dim:
             # NOTE(kevinwuTT): ttnn.squeeze only supports dim 0 currently
             if args[1] != 0:
-                call_func = super().call_function(target, args, kwargs)
+                call_func = self.call_function_prop_meta(target, args, kwargs)
             else:
-                call_func = super().call_function(ttnn.squeeze, args, kwargs)
+                call_func = self.call_function_prop_meta(ttnn.squeeze, args, kwargs)
         elif target == torch.ops.aten.lt.Tensor:
-            call_func = super().call_function(ttnn.lt, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.lt, args, kwargs)
         elif target == torch.ops.aten.cos.default:
-            call_func = super().call_function(ttnn.cos, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.cos, args, kwargs)
         elif target == torch.ops.aten.sigmoid.default:
-            call_func = super().call_function(ttnn.sigmoid, args, kwargs)
+            call_func = self.call_function_prop_meta(ttnn.sigmoid, args, kwargs)
         else:
-            call_func = super().call_function(target, args, kwargs)
+            call_func = self.call_function_prop_meta(target, args, kwargs)
 
-        # Copy metadata of old node to replacement
-        meta = fx_traceback.get_current_meta()
-        if meta is not None and "val" in meta:
-            call_func.node.meta["val"] = meta["val"]
+        # # Copy metadata of old node to replacement
+        # meta = fx_traceback.get_current_meta()
+        # if meta is not None:
+        #     call_func.node.meta = meta
         return call_func
 
 
@@ -144,12 +154,28 @@ def has_valid_page_size(shape):
     return True
 
 
+# override some functions from torch.fx.graph.Graph
+class GraphWrapper:
+    def __init__(self, node):
+        self.g = node.graph
+        self.node = node
+
+    def call_function(self, target, args=(), kwargs={}):
+        new_node = self.g.call_function(target, args, kwargs)
+        new_node.meta = self.node.meta
+        return new_node
+
+    def inserting_before(self, node):
+        return self.g.inserting_before(node)
+
+
 def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
     nodes = list(gm.graph.nodes)
     for node in nodes:
-        g = node.graph
+        g = GraphWrapper(node)
         args = node.args
 
+        new_nodes = []
         with g.inserting_before(node):
             # TODO (kevinwuTT): consolidate and simplify these statements?
             if node.target == torch.ops.aten.clone.default:
@@ -159,18 +185,13 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                 new_node = g.call_function(
                     ttnn.clone, args=(args[0], TtnnDramMemoryConfig(), ttnn_dtype)
                 )
-                new_node.meta["val"] = node.meta["val"]
-                node.replace_all_uses_with(
-                    new_node,
-                    delete_user_cb=lambda node: node != new_node,
-                )
+                new_nodes.append(new_node)
             if node.target == torch.ops.aten.native_layer_norm.default:
                 new_node = g.call_function(
                     ttnn.layer_norm,
                     args=(args[0],),
                     kwargs={"epsilon": args[4], "weight": args[2], "bias": args[3]},
                 )
-                new_node.meta["val"] = node.meta["val"]
                 node.replace_all_uses_with(
                     new_node, delete_user_cb=lambda node: node != new_node
                 )
@@ -181,11 +202,7 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                 new_node = g.call_function(
                     ttnn.ones, args=args, kwargs={"device": TtnnDevice()}
                 )
-                new_node.meta["val"] = node.meta["val"]
-                node.replace_all_uses_with(
-                    new_node,
-                    delete_user_cb=lambda node: node != new_node,
-                )
+                new_nodes.append(new_node)
             """
             # NOTE(kevinwuTT): aten.arange.default starts with 0 which is unsupported by ttnn.arange at the moment
             if node.target == torch.ops.aten.arange.default:
@@ -193,7 +210,7 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                 new_args = (0,)
                 new_kwargs = {"end": args[0], "step": 1, "device": TtnnDevice()}
                 new_node = g.call_function(ttnn.arange, args=new_args, kwargs=new_kwargs)
-                node.replace_all_uses_with(new_node, delete_user_cb=lambda node: node != new_node,)
+                new_nodes.append(new_node)
             """
             if node.target == torch.ops.aten.arange.start:
                 # NOTE(kevinwuTT): ttnn.arange does not support starting values smaller than 2 currently
@@ -204,11 +221,7 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                     new_node = g.call_function(
                         ttnn.arange, args=new_args, kwargs=new_kwargs
                     )
-                    new_node.meta["val"] = node.meta["val"]
-                    node.replace_all_uses_with(
-                        new_node,
-                        delete_user_cb=lambda node: node != new_node,
-                    )
+                    new_nodes.append(new_node)
             if node.target == torch.ops.aten.arange.start_step:
                 # NOTE(kevinwuTT): ttnn.arange does not support starting values smaller than 2 currently
                 if args[0] >= 2:
@@ -221,11 +234,7 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                     new_node = g.call_function(
                         ttnn.arange, args=new_args, kwargs=new_kwargs
                     )
-                    new_node.meta["val"] = node.meta["val"]
-                    node.replace_all_uses_with(
-                        new_node,
-                        delete_user_cb=lambda node: node != new_node,
-                    )
+                    new_nodes.append(new_node)
             if node.target in relational_scalar_ops:
                 # NOTE(kevinwuTT): ttnn.eq shows error if passing a literal scalar as an argument.
                 # Instead, fill a tensor with the same size as args[0] with the scalar value using ttnn.full
@@ -239,20 +248,12 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                     full_node = g.call_function(
                         ttnn.full, args=(arg_metadata.size(),), kwargs=new_kwargs
                     )
-                    # Intermediate node meta is not preserved, this ensures retention
-                    # Are output dims same for full node and actual node to be replaced?
-                    full_node.meta["val"] = node.meta["val"]
-
                     new_node = g.call_function(
                         relational_scalar_ops[node.target],
                         args=(args[0], full_node),
                         kwargs={},
                     )
-                    new_node.meta["val"] = node.meta["val"]
-                    node.replace_all_uses_with(
-                        new_node,
-                        delete_user_cb=lambda node: node != new_node,
-                    )
+                    new_nodes.append(new_node)
             if node.target == torch.ops.aten.full.default:
                 # args[0] can be empty for aten.full which simply creates a scalar. Ignore conversion in this case.
                 if args[0]:
@@ -264,51 +265,32 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                     new_node = g.call_function(
                         ttnn.full, args=(tuple(args[0]),), kwargs=new_kwargs
                     )
-                    new_node.meta["val"] = node.meta["val"]
-                    node.replace_all_uses_with(
-                        new_node,
-                        delete_user_cb=lambda node: node != new_node,
-                    )
+                    new_nodes.append(new_node)
             if node.target == torch.ops.aten.baddbmm.default:
                 kwargs = node.kwargs
                 # out = beta * input + alpha * (batch1 @ batch2)
                 # if beta is 0, input is ignored, and nan and inf in it will not be propogated
                 new_node = g.call_function(ttnn.matmul, args=(args[1], args[2]))
-                # Intermediate node meta is not preserved, this ensures retention
-                new_node.meta["val"] = node.meta["val"]
-
                 if "alpha" in kwargs:
                     new_node = g.call_function(
                         ttnn.multiply, args=(new_node, kwargs["alpha"])
                     )
-                    # Intermediate node meta is not preserved, this ensures retention
-                    new_node.meta["val"] = node.meta["val"]
                 if "beta" in kwargs:
                     if kwargs["beta"] != 0:
                         beta_node = g.call_function(
                             ttnn.multiply, args=(args[0], kwargs["beta"])
                         )
-                        # Intermediate node meta is not preserved, this ensures retention
-                        beta_node.meta["val"] = node.meta["val"]
                         new_node = g.call_function(ttnn.add, args=(beta_node, new_node))
                 else:
                     new_node = g.call_function(ttnn.add, args=(args[0], new_node))
-                new_node.meta["val"] = node.meta["val"]
-                node.replace_all_uses_with(
-                    new_node,
-                    delete_user_cb=lambda node: node != new_node,
-                )
+                new_nodes.append(new_node)
             if node.target == torch.ops.aten.embedding.default:
                 # TODO(kevinwuTT): Add support for ROW_MAJOR_LAYOUT
                 new_kwargs = {"layout": TtnnTileLayout()}
                 new_node = g.call_function(
                     ttnn.embedding, args=(args[1], args[0]), kwargs=new_kwargs
                 )
-                new_node.meta["val"] = node.meta["val"]
-                node.replace_all_uses_with(
-                    new_node,
-                    delete_user_cb=lambda node: node != new_node,
-                )
+                new_nodes.append(new_node)
             if node.target == torch.ops.aten.rsub.Scalar:
                 # NOTE(kevinwuTT): ttnn.sub shows error if passing a literal scalar as the first argument.
                 # Instead, fill a tensor with the same size as args[0] with the scalar value using ttnn.full
@@ -322,19 +304,13 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                 full = g.call_function(
                     ttnn.full, args=(tuple(node_metadata.size()),), kwargs=new_kwargs
                 )
-                # Intermediate node meta is not preserved, this ensures retention
-                full.meta["val"] = node.meta["val"]
                 to_layout = g.call_function(
                     ttnn.to_layout, (full,), {"layout": TtnnTileLayout()}
                 )
                 new_node = g.call_function(
                     ttnn.sub, args=(to_layout, args[0]), kwargs={}
                 )
-                new_node.meta["val"] = node.meta["val"]
-                node.replace_all_uses_with(
-                    new_node,
-                    delete_user_cb=lambda node: node != new_node,
-                )
+                new_nodes.append(new_node)
             if node.target == torch.ops.aten.div.Tensor:
                 # ttnn.recip does not support scalars. Call an ttnn.full and pass that to ttnn.recip
                 # TODO(kevinwuTT): Use a ttnn equivalent
@@ -349,22 +325,14 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                         args=(tuple(node_metadata.size()),),
                         kwargs=new_kwargs,
                     )
-                    # Intermediate node meta is not preserved, this ensures retention
-                    full.meta["val"] = node.meta["val"]
                     to_layout = g.call_function(
                         ttnn.to_layout, (full,), {"layout": TtnnTileLayout()}
                     )
                     recip = g.call_function(ttnn.reciprocal, (to_layout,), {})
                 else:
                     recip = g.call_function(ttnn.reciprocal, (args[1],), {})
-                # Intermediate node meta is not preserved, this ensures retention
-                recip.meta["val"] = node.meta["val"]
                 new_node = g.call_function(ttnn.mul, (args[0], recip), {})
-                new_node.meta["val"] = node.meta["val"]
-                node.replace_all_uses_with(
-                    new_node,
-                    delete_user_cb=lambda node: node != new_node,
-                )
+                new_nodes.append(new_node)
             if node.target == torch.ops.aten._to_copy.default:
                 kwargs = node.kwargs
                 ttnn_dtype = torch_dtype_to_ttnn_dtype(kwargs["dtype"])
@@ -376,11 +344,7 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                     "memory_config": TtnnDramMemoryConfig(),
                 }
                 new_node = g.call_function(ttnn.as_tensor, args, new_kwargs)
-                new_node.meta["val"] = node.meta["val"]
-                node.replace_all_uses_with(
-                    new_node,
-                    delete_user_cb=lambda node: node != new_node,
-                )
+                new_nodes.append(new_node)
             if node.target == torch.ops.aten.expand.default:
                 # aten.expand and ttnn.repeat has different meaning for their `shape` argument
                 # aten.expand: the desired output shape, where respective singleton dims are broadcasted
@@ -392,19 +356,12 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
 
                 shape_node = g.call_function(ttnn.Shape, (multiplier.tolist(),), {})
                 new_node = g.call_function(ttnn.repeat, (args[0], shape_node), {})
-                new_node.meta["val"] = node.meta["val"]
-                node.replace_all_uses_with(
-                    new_node, delete_user_cb=lambda node: node != new_node
-                )
+                new_nodes.append(new_node)
             if node.target == torch.ops.aten.unsqueeze.default:
                 output_size = node.meta["val"].size()
                 output_size = list(output_size)
                 new_node = g.call_function(ttnn.reshape, args=(args[0], output_size))
-                new_node.meta["val"] = node.meta["val"]
-                node.replace_all_uses_with(
-                    new_node,
-                    delete_user_cb=lambda node: node != new_node,
-                )
+                new_nodes.append(new_node)
             if node.target == torch.ops.aten.transpose.int:
                 dim0 = args[1]
                 dim1 = args[2]
@@ -415,11 +372,7 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                     permutation[dim0],
                 )
                 new_node = g.call_function(ttnn.permute, args=(args[0], permutation))
-                new_node.meta["val"] = node.meta["val"]
-                node.replace_all_uses_with(
-                    new_node,
-                    delete_user_cb=lambda node: node != new_node,
-                )
+                new_nodes.append(new_node)
             if node.target == torch.ops.aten.t.default:
                 permutation = list()
                 rank = len(node.meta["val"].size())
@@ -429,11 +382,13 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                     new_node = g.call_function(
                         ttnn.permute, args=(args[0], permutation)
                     )
-                    new_node.meta["val"] = node.meta["val"]
-                    node.replace_all_uses_with(
-                        new_node,
-                        delete_user_cb=lambda node: node != new_node,
-                    )
+                    new_nodes.append(new_node)
+
+            if new_nodes:
+                node.replace_all_uses_with(
+                    new_nodes[-1],
+                    delete_user_cb=lambda node: node != new_nodes[-1],
+                )
 
     gm = GraphCleanup(gm)
     return gm
@@ -452,6 +407,8 @@ class ToTtPass(PassBase):
 
         # Replace more patterns with torch.fx.Transformer
         gm = ReplaceMoreTt(gm).transform()
+
+        # We won't use torch.fx.Transformer because metadata is removed after .transform()
 
         # Restore metadata for Placeholder nodes
         for node in gm.graph.nodes:
