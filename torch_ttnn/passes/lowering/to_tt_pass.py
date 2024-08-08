@@ -335,6 +335,14 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                 new_nodes.append(new_node)
             if node.target == torch.ops.aten._to_copy.default:
                 kwargs = node.kwargs
+                if kwargs["dtype"] == torch.float32:
+                    new_kwargs = {"dtype": torch.bfloat16}
+                    new_node = g.call_function(
+                        torch.ops.aten._to_copy.default, args, new_kwargs
+                    )
+                    new_nodes.append(new_node)
+                """
+                # NOTE(kevinwuTT): aten._to_copy is used to cast dtypes. Should combine this with other ops.
                 ttnn_dtype = torch_dtype_to_ttnn_dtype(kwargs["dtype"])
                 # Add additional logic to choose the appropriate memory_config type: DRAM or L1
                 new_kwargs = {
@@ -345,6 +353,7 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                 }
                 new_node = g.call_function(ttnn.as_tensor, args, new_kwargs)
                 new_nodes.append(new_node)
+                """
             if node.target == torch.ops.aten.expand.default:
                 # aten.expand and ttnn.repeat has different meaning for their `shape` argument
                 # aten.expand: the desired output shape, where respective singleton dims are broadcasted
