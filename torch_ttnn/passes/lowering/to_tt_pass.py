@@ -62,8 +62,10 @@ class ReplaceMoreTt(torch.fx.Transformer):
         elif target == torch.ops.aten.tanh.default:
             call_func = self.call_function_prop_meta(ttnn.tanh, args, kwargs)
         elif target == torch.ops.aten.view.default:
-            # TODO(kevinwuTT): Handle restrictions from ttnn.reshape
-            call_func = self.call_function_prop_meta(target, args, kwargs)
+            # aten.reshape is more stable if the input nodes have changed
+            call_func = self.call_function_prop_meta(
+                torch.ops.aten.reshape.default, args, kwargs
+            )
         elif target == torch.ops.aten.permute.default:
             call_func = self.call_function_prop_meta(ttnn.permute, args, kwargs)
         elif target == torch.ops.aten.relu.default:
