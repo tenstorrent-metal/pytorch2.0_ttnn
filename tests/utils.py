@@ -104,9 +104,22 @@ def calculate_accuracy(original_outputs, compiled_outputs):
         original_outputs = dict(original_outputs)
         compiled_outputs = dict(compiled_outputs)
         output_pccs = []
-        for key in original_outputs.keys() & compiled_outputs.keys():
-            _, pcc = comp_pcc(original_outputs[key], compiled_outputs[key])
-            output_pccs.append(pcc)
+        assert original_outputs.keys() == compiled_outputs.keys(), (
+            f"Original and compiled output do not have the same set of keys."
+            f"original keys:\n{original_outputs.keys()}\ncompiled keys:\n{compiled_outputs.keys()}"
+        )
+        for original_outputs, compiled_outputs in zip(
+            original_outputs.values(), compiled_outputs.values()
+        ):
+            # TODO: Support other sequence types
+            if isinstance(original_outputs, torch.Tensor) and isinstance(
+                compiled_outputs, torch.Tensor
+            ):
+                _, pcc = comp_pcc(original_outputs, compiled_outputs)
+                output_pccs.append(pcc)
+        assert (
+            output_pccs
+        ), f"No comparable outputs:\noriginal_outputs:\n{original_outputs}\ncompiled_outputs:\n{compiled_outputs}"
         accuracy = torch.mean(torch.tensor(output_pccs)).item()
     elif isinstance(original_outputs, torch.Tensor) and isinstance(
         compiled_outputs, torch.Tensor
