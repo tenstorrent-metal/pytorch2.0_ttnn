@@ -266,6 +266,13 @@ def ReplaceMoreTtManually(gm: torch.fx.GraphModule) -> torch.fx.GraphModule:
                         ttnn.full, args=(tuple(args[0]),), kwargs=new_kwargs
                     )
                     new_nodes.append(new_node)
+                else:
+                    # Replace op with scalar for eltwise ops
+                    # TODO: Generalize this to support all eltwise ops
+                    node_users = list(node.users.keys())
+                    for node_user in node_users:
+                        if node_user.target == torch.ops.aten.div.Tensor:
+                            node_user.update_arg(1, args[1])
             if node.target == torch.ops.aten.baddbmm.default:
                 kwargs = node.kwargs
                 # out = beta * input + alpha * (batch1 @ batch2)
