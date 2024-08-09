@@ -3,7 +3,7 @@ import torch_ttnn
 import pytest
 import ttnn
 
-from tests.utils import check_with_pcc
+from tests.utils import assert_with_pcc
 
 
 class GeluModule(torch.nn.Module):
@@ -34,4 +34,4 @@ def test_gelu(device, input_shapes):
     assert [node.target for node in nodes].count(ttnn.gelu) == 1
     # Check inference result
     print(result_before, "\n", result_after)
-    assert check_with_pcc(result_before, result_after)
+    assert_with_pcc(result_before, result_after)

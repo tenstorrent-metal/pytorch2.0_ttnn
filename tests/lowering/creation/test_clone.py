@@ -3,7 +3,7 @@ import torch_ttnn
 import pytest
 import ttnn
 
-from tests.utils import check_with_pcc
+from tests.utils import assert_with_pcc
 
 
 class CloneFromNodeModule(torch.nn.Module):

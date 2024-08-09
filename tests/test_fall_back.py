@@ -3,7 +3,7 @@ import torch_ttnn
 import pytest
 import ttnn
 
-from tests.utils import check_with_pcc
+from tests.utils import assert_with_pcc
 
 
 @pytest.mark.parametrize(
@@ -59,4 +59,4 @@ def test_fall_back(device, input_shapes):
     assert matmul_idx < multiply_idx[2]
 
     # Check inference result
-    assert check_with_pcc(result_before, result_after)
+    assert_with_pcc(result_before, result_after)
